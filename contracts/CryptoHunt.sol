@@ -38,6 +38,19 @@ contract CryptoHunt {
     mapping(address => Player) public players;
 
     /**
+     * Deploys new game with configuration
+     */
+    constructor(string memory _location, uint256 _rS, uint256 _rE, uint256 _gS, uint256 _gE, uint256 _minPlayers, uint256 _minAmount) {
+        location = _location;
+        registrationStart = _rS;
+        registrationEnd = _rE;
+        gameStart = _gS;
+        gameEnd = _gE;
+        minPlayers = _minPlayers;
+        minAmount = _minAmount;
+    }
+
+    /**
      * Registers player with public address (from web - he has corresponding private key for playing)
      */
     function register(address _public, bytes memory _nameEncrypted) payable external {
