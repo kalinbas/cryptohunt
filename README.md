@@ -1,2 +1,5 @@
-# cryptohunt
-Repo for blockchain based real-live hunt games
+# CryptoHunt
+The crypto real-life game completely on the blockchain
+
+## Basic idea
+https://cryptohunt.mystrikingly.com/
