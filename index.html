@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QR Code Testing</title>
+  <script src="/qr-scanner.umd.min.js"></script>
+</head>
+
+<body>
+
+  
+  <input id="camera-input" type="file" accept="image/*" capture="camera" /> 
+  <p id="result"></p>
+
+  <script>
+    const cameraInput = document.getElementById('camera-input');
+    const resultContainer = document.getElementById('result');
+    cameraInput.addEventListener('change', (e) => handleImage(e.target.files));
+
+    function handleImage(files) {
+      QrScanner.scanImage(files[0])
+        .then(result => { resultContainer.innerHTML = result; })
+        .catch(error => { resultContainer.innerHTML = error || 'No QR code found.' });
+    }
+  </script>
+</body>
+</html>
+
