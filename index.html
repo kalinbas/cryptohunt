@@ -6,10 +6,12 @@
   <title>QR Code Testing</title>
 </head>
 
-<body>
+<body style="text-align: center;">
 
-  
-  <input id="camera-input" type="file" accept="image/*" capture="camera" /> 
+  <label class="custom-file-upload" style="border: 1px solid #ccc;display: inline-block;padding: 20px 20px;cursor: pointer;">
+    <input id="camera-input" type="file" accept="image/*" capture="camera" style="display: none;"/> 
+    Open Scanner Camera
+  </label>
   <p id="result"></p>
 
 
@@ -22,9 +24,10 @@
     cameraInput.addEventListener('change', (e) => handleImage(e.target.files));
   
     function handleImage(files) {
+      resultContainer.innerHTML = ""
       QrScanner.scanImage(files[0])
-        .then(result => { resultContainer.innerHTML = result; })
-        .catch(error => { resultContainer.innerHTML = error || 'No QR code found.' });
+        .then(result => { resultContainer.innerHTML = "SUCCESS: " + result; })
+        .catch(error => { resultContainer.innerHTML = "FAIL: " + (error || 'No QR code found.') })
     }
   </script>
 </body>
