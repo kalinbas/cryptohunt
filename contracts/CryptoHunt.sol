@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.7.0 <0.9.0;
 
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 
 /**
  * Crypto hunt contract
@@ -12,9 +12,10 @@ contract CryptoHunt {
 
     struct Player {
         address payable owner;
-        uint256 amount;
-        bytes nameEncrypted; // name encripted with private key
-        uint256 points;
+        uint256 amount; // amount paid / claimable
+        bytes nameEncrypted; // name AES encripted with private key
+        uint256 protectedUntil; // timestamp for protection period
+        uint256 points; // sum of points
         mapping(address => HitStatus) hits;
     }
 
@@ -33,6 +34,7 @@ contract CryptoHunt {
     
     uint256 public hitPoints = 1;
     uint256 public confirmPoints = 2;
+    uint256 public protectionSeconds = 300; // 5mins after hit - to confirm and continue
     
     address[] public playerAdresses;
     mapping(address => Player) public players;
@@ -71,7 +73,7 @@ contract CryptoHunt {
      */
     function calculateWinners() external {
         require(block.timestamp >= gameEnd, "game not over");
-        require(totalAmount == 0, "winners calculated");
+        require(totalAmount == 0, "already calculated");
         require(playerAdresses.length >= minPlayers, "too few players");
      
         totalAmount = address(this).balance;
@@ -127,16 +129,25 @@ contract CryptoHunt {
      */
     function hit(address _looser, bytes memory _signature) external {
         require(block.timestamp >= gameStart && block.timestamp < gameEnd, "!game active");
-        require(players[msg.sender].hits[_looser] == HitStatus.NONE, 'already won');
-        require(players[_looser].hits[msg.sender] == HitStatus.NONE, 'already lost');
+
+        Player _player = players[msg.sender];
+        Player _looserPlayer = players[_looser];
+
+        require(_player.hits[_looser] == HitStatus.NONE, 'already won');
+        require(_looserPlayer.hits[msg.sender] == HitStatus.NONE, 'already lost');
+        require(_player.protectedUntil < block.timestamp, 'protected');
+        require(_looserPlayer.protectedUntil < block.timestamp, 'protected');
         
         bytes32 _hash = getHash(_looser);
         address _signer = ECDSA.recover(_hash, _signature);
         require(_signer == _looser, 'invalid signature');
         
-        players[msg.sender].hits[_looser] == HitStatus.HIT;
-        players[msg.sender].points += hitPoints;
-        
+        _player.hits[_looser] == HitStatus.HIT;
+        _player.points += hitPoints;
+
+        // players are protected for a certain time after hit
+        _player.protectedUntil = block.timestamp + protectionSeconds;
+        _looserPlayer.protectedUntil = block.timestamp + protectionSeconds;
     }
 
     /**
@@ -154,6 +165,9 @@ contract CryptoHunt {
         players[_winner].points += confirmPoints;
     }
     
+    /**
+    * Gets hash to calculate signature on (with _other players private key)
+    */
     function getHash(address _other) public view returns (bytes32)
     {
         return keccak256(abi.encodePacked(msg.sender, _other));
