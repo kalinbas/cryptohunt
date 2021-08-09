@@ -56,16 +56,20 @@ contract CryptoHunt {
      * Registers player with public address (from web - he has corresponding private key for playing)
      */
     function register(address _public, bytes memory _nameEncrypted) payable external {
-        
+                
         require(_public != address(0), 'address empty');
-        require(players[_public].owner == address(0), 'already registered');
+
+        Player storage _player = players[msg.sender];
+
+        require(_player.owner == address(0), 'already registered');
         require(msg.value < minAmount, "<minAmount");
         require(block.timestamp >= registrationStart && block.timestamp < registrationEnd, "registration over");
 
         playerAdresses.push(_public);
-        players[_public].owner = payable(msg.sender);
-        players[_public].amount = msg.value;
-        players[_public].nameEncrypted = _nameEncrypted;
+
+        _player.owner = payable(msg.sender);
+        _player.amount = msg.value;
+        _player.nameEncrypted = _nameEncrypted;
     }
     
      /**
@@ -74,7 +78,10 @@ contract CryptoHunt {
     function calculateWinners() external {
         require(block.timestamp >= gameEnd, "game not over");
         require(totalAmount == 0, "already calculated");
-        require(playerAdresses.length >= minPlayers, "too few players");
+
+        uint256 _playerCount = playerAdresses.length;
+
+        require(_playerCount >= minPlayers, "too few players");
      
         totalAmount = address(this).balance;
 
@@ -82,7 +89,7 @@ contract CryptoHunt {
         uint256 _maxPoints = 0;
         uint256 _maxCount = 0;
         uint256 _i;
-        for (_i = 0; _i < playerAdresses.length; _i++) {
+        for (_i = 0; _i < _playerCount; _i++) {
             uint256 _points = players[playerAdresses[_i]].points;
             if (_points > _maxPoints) {
                 _maxPoints = _points;
@@ -94,7 +101,7 @@ contract CryptoHunt {
         
         // distribute amounts to be claimed
         uint256 _priceAmount = totalAmount / _maxCount;
-        for (_i = 0; _i < playerAdresses.length; _i++) {
+        for (_i = 0; _i < _playerCount; _i++) {
             uint256 _points = players[playerAdresses[_i]].points;
             if (_points == _maxPoints) {
                 players[playerAdresses[_i]].amount = _priceAmount;
@@ -110,7 +117,9 @@ contract CryptoHunt {
      */
     function claim() external {
         
-        require(players[msg.sender].amount > 0, 'nothing to claim');
+        Player storage _player = players[msg.sender];
+
+        require(_player.amount > 0, 'nothing to claim');
         
         if (playerAdresses.length < minPlayers) {
             require(block.timestamp >= registrationEnd, "registration not over");
@@ -119,9 +128,9 @@ contract CryptoHunt {
             require(totalAmount > 0, "profits not calculated");
         }
         
-        uint256 _amount = players[msg.sender].amount;
-        players[msg.sender].amount = 0;
-        players[msg.sender].owner.transfer(_amount);
+        uint256 _amount = _player.amount;
+        _player.amount = 0;
+        _player.owner.transfer(_amount);
     }
     
     /**
@@ -130,8 +139,8 @@ contract CryptoHunt {
     function hit(address _looser, bytes memory _signature) external {
         require(block.timestamp >= gameStart && block.timestamp < gameEnd, "!game active");
 
-        Player _player = players[msg.sender];
-        Player _looserPlayer = players[_looser];
+        Player storage _player = players[msg.sender];
+        Player storage  _looserPlayer = players[_looser];
 
         require(_player.hits[_looser] == HitStatus.NONE, 'already won');
         require(_looserPlayer.hits[msg.sender] == HitStatus.NONE, 'already lost');
